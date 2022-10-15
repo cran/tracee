@@ -48,11 +48,13 @@ ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
     if(!is.null(file)) file <- basename(file)
 
     stamp1 <- function(plot){
+        caption.existing <- NULL
 ### determine method to use. otype is object type
         otype <- NA
         if("ggplot"%in%class(plot)){
 ####### for single ggplot objects
             otype <- "ggplot"
+            caption.existing <- try(plot$label$caption)
         }
         if("gtable"%in%class(plot)){
             if(!is.na(otype)) stop("Confused. type both ggplot and gtable. Dont knot how to stamp this object.")
@@ -61,20 +63,26 @@ ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
         }
         if("ggmatrix"%in%class(plot)){
             if(!is.na(otype)) stop("Confused. type both ggmatrix and ggplot or gtable. Dont knot how to stamp this object.")
-######## ggmatrix can be stamped just like ggplot
+######## ggmatrix can be stamped just like ggplot. But the existing caption will have to be extracted differently. 
             otype <- "ggplot"
+            caption.existing <- try(plot$gg$labs$caption)
         }
         if(is.na(otype)) stop("Dont know how to stamp this object type.")
-        
-        date.txt <- format(time, "%d-%b-%Y %H:%M")
-        caption.stamp <- paste(date.txt,file)
-        caption=paste(c(plot$label$caption,script,caption.stamp),collapse="\n")
+        if("try-error" %in% class(caption.existing)) caption.existing  <- ""
+
+            ## date.txt <- format(time, "%d-%b-%Y %H:%M")
+            ## caption.stamp <- paste(date.txt,file)
+            ## caption <- paste(c(caption.existing,script,caption.stamp),collapse="\n")
+            
+        caption <- createStamp(script=script,file=file,time=time,addto=caption.existing)
+
         
         plot.stamped <- switch(otype,
-                               ggplot={if(sum(unlist(packageVersion("ggplot2")[1,])*c(1000)^c(2:0))<2002001){
+                               ggplot={
+                                   if(sum(unlist(packageVersion("ggplot2")[1,])*c(1000)^c(2:0))<2002001){
                                            stop("ggplot >= 2.2.1 needed to stamp ggplot objects.")
                                        }
-                                           plot+ggplot2::labs(caption=caption)+theme(plot.caption=element_text(size=6, colour="grey"))},
+                                   plot+ggplot2::labs(caption=caption)+theme(plot.caption=element_text(size=6, colour="grey"))},
                                gtable={
                                    arrangeGrob(plot, bottom = textGrob(caption, gp=gpar(font=1, col = "grey", cex = 0.5)),heights=c(0.98,0.02))
 
