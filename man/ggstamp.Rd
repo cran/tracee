@@ -4,7 +4,7 @@
 \alias{ggstamp}
 \title{Always stamp your plots with script name}
 \usage{
-ggstamp(plot, script = "no stamp", file, time = Sys.time())
+ggstamp(plot, script = "", file, time = Sys.time())
 }
 \arguments{
 \item{plot}{The plot to be stamped.}
@@ -41,7 +41,7 @@ data(ChickWeight)
 p1 <- ggplot(ChickWeight,aes(Time,weight,group=Chick,colour=factor(Diet)))+geom_line()
 script <- "note"
 ggstamp(p1,script)
-## Or use ggwrite which will call ggstamp automatically.
+## Or use ggwrite which will call ggstamp when the `script` argument is provided.
 ggwrite(p1,script=script,canvas="wide")
 }
 \seealso{

@@ -1,3 +1,21 @@
+# 0.0.3
+## Changes
+* Flextab function names aligned with functions for
+  plots. writeFlextab is deprecated and now called
+  ftwrite. stampFlextab is deprecated and now called ftstamp. These
+  names match ggwrite and ggstamp, respectively.
+## New features
+* Missing script argument supported in ftwrite.
+
+* ggwrite support multiple formats (new argument aligning with
+  writeFlextab) and canvases. In this case, the canvas name will be
+  appended to file names.
+  
+* ftwrite now throws an error in case unsupported output formats
+  are requested.
+  
+* ftwrite support the 'save' argument like ggwrite. 
+
 # 0.0.2
 ## New functions
 * writeFlextab is a wrapper that flextable objects to files including
@@ -9,4 +27,3 @@
 ## Added features
 * Objets of class ggmatrix can now be stamped using ggstamp. 
 
-* If a 

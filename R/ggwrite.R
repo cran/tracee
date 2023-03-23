@@ -9,11 +9,16 @@
 ##'     is a list, see onefile. If missing, plot is shown on screen.
 ##' @param script This should normally be the path to your
 ##'     script. Requires ggplot >=2.2.1.
+##' @param time Passed to ggwrite. 
 ##' @param canvas Either a list of height and width or a shortname of
 ##'     predefined canvas size. See ?canvasSize.
+##' @param formats File formats to write to as a character
+##'     vector. Must be a subset of c("png","pdf"). Default is to only
+##'     write to the format matching the file name extension of
+##'     `file`.
 ##' @param onefile Only applicable if plot is a list. If plot is a
-##'     list and onefile=TRUE, all plots will be put in a pdf (file must
-##'     end in pdf) with one plot per page. If plot is a list and
+##'     list and onefile=TRUE, all plots will be put in a pdf (file
+##'     must end in pdf) with one plot per page. If plot is a list and
 ##'     onefile=FALSE, numbered files will be created - one per list
 ##'     element.
 ##' @param res Resolution. Passed to png.
@@ -28,9 +33,11 @@
 ##' @param useNames If length(plot)>1 use names(plot) in the file
 ##'     names? Default is to use 1:length(plot). Only used if save is
 ##'     TRUE, and length(plot)>1.
-##' @param quiet Default is false but use TRUE to suppress messages about what was saved.
+##' @param quiet Default is false but use TRUE to suppress messages
+##'     about what was saved.
 ##' @export
-##' @return Nothing. Files written and/or plots shown, depending on argument values.
+##' @return Nothing. Files written and/or plots shown, depending on
+##'     argument values.
 ##' @examples
 ##' library(ggplot2)
 ##' writeOutput <- FALSE
@@ -39,10 +46,11 @@
 ##' ggwrite(p1)  ## view plot on screen
 ##' script <- "note"
 ##' ggwrite(p1,script=script,canvas="wide",file="myplot1.png",save=writeOutput)
-##' ## save a data.frame as an image
 ##' @family Plotting
 ##' @import grDevices
 ##' @import grid
+##' @import data.table
+##' @import NMdata
 
 ### had to skip this example - lagging data.table
 ## library(gridExtra)
@@ -51,13 +59,27 @@
 ## ggwrite(tg1,script=script,file="mytab1.png",save=writeOutput)
 
 
-ggwrite <- function(plot, file, script, canvas="standard",
+ggwrite <- function(plot, file, script, time, canvas="standard", formats,
                     onefile=FALSE, res=200, paper="special",
                     save=TRUE, show=!save, useNames=FALSE, quiet=FALSE){
+
+#### Section start: Dummy variables, only not to get NOTE's in pacakge checks ####
+
+    name.canvas <- NULL
+    . <- NULL
+    size <- NULL
     
+### Section end: Dummy variables, only not to get NOTE's in pacakge checks
+
+    if(missing(plot) || !exists("plot")){
+        stop("An existing plot must be passed as the plot argument.")
+    }
 
     if(useNames && length(plot)==1) warning("useNames is ignored because plot is of length 1.")
 
+    if(!missing(file) && (missing(formats)||is.null(formats))) formats <- fnExtension(file)
+    if(is.null(canvas)) canvas <- "standard"
+    if(missing(time)) time <- NULL
     
 ###### functions to be used internally
 ### print1 does the actual printing to the device. Because if the plot is a
@@ -77,24 +99,27 @@ ggwrite <- function(plot, file, script, canvas="standard",
     ## make function to use for one plot. Then we will call tht on plot or loop
     ## it over the elements of plot in case plot is a list.
     write1 <- function(plot,fn=NULL,type,onefile=FALSE,size){  
-        
+        if(is.null(plot)) {
+            message("plot is NULL, nothing to do.")
+            return(NULL)
+            }
         if(is.null(fn)) fn <- file
         if(!is.null(script)){
-            plot <- ggstamp(plot,script,file=fn)
+            plot <- ggstamp(plot,script,file=fn,time=time)
         }
         
         if(!is.null(fn)&&type!="x11"){
             switch(type,
                    png={
-                       png(filename = fn, width = 0.6 * size$width, 
-                           height = 0.6 * size$height, units = "in",
+                       png(filename = fn, width = size$width, 
+                           height = size$height, units = "in",
                            res=res
                            ## res = 18 * max(width, height)
                            )
                    },
                    pdf={
-                       pdf(file = fn, width = 0.6 * size$width, 
-                           height = 0.6 * size$height,onefile=onefile,paper = paper)
+                       pdf(file = fn, width = size$width, 
+                           height = size$height,onefile=onefile,paper = paper)
                    })
             print1(plot)
             dev.off()
@@ -131,9 +156,6 @@ ggwrite <- function(plot, file, script, canvas="standard",
     }
     
 
-    size <- canvasSize(canvas)
-    ## width <- size$width
-    ## height <- size$height
     
 #### check inputs done
 
@@ -171,9 +193,6 @@ ggwrite <- function(plot, file, script, canvas="standard",
                     write1(plot[[1]],type="x11")
                     if(Nplots>2){
                         silent <- lapply(2:Nplots,function(I){
-                            ## debug
-                            ## cat("opening x11 device")
-                            ## x11()
                             write1(plot=plot[[I]],type=type,size=size)
                         })
                     }
@@ -188,17 +207,66 @@ ggwrite <- function(plot, file, script, canvas="standard",
         } else {
             write1(plot=plot,fn=file,type=type,size=size)
         }
-      invisible(NULL)
+        invisible(NULL)
     }
 
-    
+
+
     if(save){
-      writeObj(plot,file=file,size=size)
-      if(!quiet&&!is.null(file)) message("Written to ",file)
+#### Section start: create data.table with all combinations of formats and canvases ####
+
+        is.chars <- sapply(canvas,is.character)
+        ## if more than one canvas is given, lists must be named
+        if(
+            length(canvas)>1&&is.null(names(canvas)) && any(!is.chars) ){
+            stop("If more than one canvas is requested, non-character elements must be named.")
+        }
+        ## character elements do not need to be named. If they are not, we use the canvas name
+        nms <- names(canvas)
+        ## get rid of special characters
+        
+if(all(is.chars) && length(nms)==0) {
+            nms <- unlist(canvas)
+        }
+
+        nms <- gsub(" ","",nms)
+        nms <- gsub("[[:punct:]]","",nms)
+        
+        
+        nms[is.chars&nms==""] <- unlist(canvas[is.chars&nms==""])
+        names(canvas) <- nms
+        ## check that names are unique
+        if(any(duplicated(nms))) stop("canvas names must be unique")
+
+        
+        dt.canvas <- do.call(rbind,
+                             lapply(canvasSize(canvas,simplify=FALSE),as.data.table)
+                             )
+        dt.canvas$name.canvas <- names(canvas)
+
+        allcombs <- egdt(data.table(format=formats),
+                         dt.canvas,quiet=TRUE)
+
+
+### Section end: create data.table with all combinations of formats and canvases
+
+        
+        n.canvas <- allcombs[,uniqueN(name.canvas)]
+        for(n in 1:nrow(allcombs)){
+            file.n <- file
+            if(n.canvas>1){
+                file.n <- fnAppend(file,
+                                   allcombs[n,name.canvas]
+                                   )
+            }
+            file.n <- fnExtension(file.n,allcombs[n,format])
+            writeObj(plot,file=file.n,size=allcombs[n,.(width,height)])
+            if(!quiet&&!is.null(file.n)) message("Written to ",file.n)
+        }
     }
-  if(show){
-    writeObj(plot,file=NULL,size=size)
-  }
-  invisible(NULL)
+    if(show){
+        writeObj(plot,file=NULL,size=size)
+    }
+    invisible(NULL)
 }
 

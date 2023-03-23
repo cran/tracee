@@ -29,13 +29,13 @@
 ##' p1 <- ggplot(ChickWeight,aes(Time,weight,group=Chick,colour=factor(Diet)))+geom_line()
 ##' script <- "note"
 ##' ggstamp(p1,script)
-##' ## Or use ggwrite which will call ggstamp automatically.
+##' ## Or use ggwrite which will call ggstamp when the `script` argument is provided.
 ##' ggwrite(p1,script=script,canvas="wide")
 ##' @family Plotting
 ##' @export
 
 
-ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
+ggstamp <- function(plot, script = "", file, time=Sys.time()) {
 ### Captions are only available in ggplot 2.2.1
 
 ### A list of plots is supported so we will run everything with lapply
@@ -51,7 +51,7 @@ ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
         caption.existing <- NULL
 ### determine method to use. otype is object type
         otype <- NA
-        if("ggplot"%in%class(plot)){
+        if("ggplot"%in%class(plot)||is.ggplot(plot)){
 ####### for single ggplot objects
             otype <- "ggplot"
             caption.existing <- try(plot$label$caption)
@@ -62,7 +62,7 @@ ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
             otype <- "gtable"
         }
         if("ggmatrix"%in%class(plot)){
-            if(!is.na(otype)) stop("Confused. type both ggmatrix and ggplot or gtable. Dont knot how to stamp this object.")
+            if(!is.na(otype)) stop("Confused. type both ggmatrix and ggplot or gtable. Dont know how to stamp this object.")
 ######## ggmatrix can be stamped just like ggplot. But the existing caption will have to be extracted differently. 
             otype <- "ggplot"
             caption.existing <- try(plot$gg$labs$caption)
@@ -70,9 +70,6 @@ ggstamp <- function(plot, script = "no stamp", file, time=Sys.time()) {
         if(is.na(otype)) stop("Dont know how to stamp this object type.")
         if("try-error" %in% class(caption.existing)) caption.existing  <- ""
 
-            ## date.txt <- format(time, "%d-%b-%Y %H:%M")
-            ## caption.stamp <- paste(date.txt,file)
-            ## caption <- paste(c(caption.existing,script,caption.stamp),collapse="\n")
             
         caption <- createStamp(script=script,file=file,time=time,addto=caption.existing)
 
