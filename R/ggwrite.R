@@ -9,7 +9,7 @@
 ##'     is a list, see onefile. If missing, plot is shown on screen.
 ##' @param script This should normally be the path to your
 ##'     script. Requires ggplot >=2.2.1.
-##' @param time Passed to ggwrite. 
+##' @param time Passed to ggwrite.
 ##' @param canvas Either a list of height and width or a shortname of
 ##'     predefined canvas size. See ?canvasSize.
 ##' @param formats File formats to write to as a character
@@ -23,8 +23,9 @@
 ##'     element.
 ##' @param res Resolution. Passed to png.
 ##' @param save Save the plot to the given file or just show? Defaults
-##'     to TRUE. Hint, if you use an "exportFlag", use
-##'     save=exportFlag.
+##'     to TRUE. If a variable is used to control whether a script
+##'     generates outputs (say `writeOutputs=TRUE/FALSE`), if you use
+##'     `save=writeOutputs` to comply with this.
 ##' @param show Print the plot to the screen? Defaults to the opposite
 ##'     of save. Hint, combining save and show in knitr can give you
 ##'     both a high quality plot in your pdf and a png optimized for
@@ -174,12 +175,12 @@ ggwrite <- function(plot, file, script, time, canvas="standard", formats,
         }
         
         if(is.list(plot)&&!any(c("gg","gtable")%in%class(plot))) {
+            if(onefile && type!="pdf"){
+                warning("onefile can only be used with pdf device. Will not be used.")
+                onefile <- FALSE
+            }
+
             if(onefile){
-                if(type!="pdf"){
-                    warning("onefile can only be used with pdf device. Will not be used.")
-                    onefile <- FALSE
-                }
-                
                 write1(plot,fn=file,type=type,onefile=onefile,size=size)
             } else {
                 
@@ -259,6 +260,7 @@ if(all(is.chars) && length(nms)==0) {
                                    allcombs[n,name.canvas]
                                    )
             }
+            
             file.n <- fnExtension(file.n,allcombs[n,format])
             writeObj(plot,file=file.n,size=allcombs[n,.(width,height)])
             if(!quiet&&!is.null(file.n)) message("Written to ",file.n)
