@@ -4,7 +4,16 @@
 \alias{ftstamp}
 \title{Stamp and write flextab objects to one or multiple formats}
 \usage{
-ftstamp(ft, file, script, bg = "#ffffff", time)
+ftstamp(
+  ft,
+  file,
+  script,
+  time,
+  model,
+  stamp.ft.style,
+  stamp.format = NULL,
+  stamp.funs = NULL
+)
 }
 \arguments{
 \item{ft}{a flextable object}
@@ -14,11 +23,32 @@ file is written by this function)}
 
 \item{script}{path to script - will be pasted as caption.}
 
-\item{bg}{Default bacground colour is #ffffff.}
-
 \item{time}{The default is to insert a time stamp taken from result of
 Sys.time(). Using the time argument you can overrule this by
 setting a fixed string instead. Use "" to omit.}
+
+\item{model}{Character string or model object specifying the model name/identifier.
+Used for stamping. If a list (model object) is provided, the \code{$label}
+element is extracted.}
+
+\item{stamp.ft.style}{A list specifying formatting options for the stamp. Valid
+elements include: \code{size} (font size, default 4), \code{align} (text
+alignment, default "right"), \code{space} (line spacing, default 1),
+\code{bg} (background color, default "#ffffff"), and \code{color} (text
+color, default "#666666"). Any unspecified elements use the defaults.}
+
+\item{stamp.format}{A template for the stamp text using the
+placeholders \code{\%script}, \code{\%time}, \code{\%model}, and
+\code{\%file}, with \code{"\\n"} for line breaks. Default is
+\code{"\%file\\n\%script\\n\%model\\n\%time"}. See \code{\link{createStamp}}.}
+
+\item{stamp.funs}{Optional named list of functions (elements \code{script},
+\code{time}, \code{model}, \code{file}) used to preprocess the values
+before they are inserted into \code{stamp.format}. See
+\code{\link{createStamp}}.}
+}
+\value{
+A flextable object with the stamp added as a footer line.
 }
 \description{
 Stamp and write flextab objects to one or multiple formats
